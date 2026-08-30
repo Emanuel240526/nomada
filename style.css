@@ -1,0 +1,802 @@
+
+/* =========================================================
+   NÓMADA — ESTILOS PRINCIPALES
+   Arcade espacial retro / synthwave
+   ========================================================= */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: none;
+}
+
+body {
+    font-family: "Courier New", monospace;
+    background:
+        radial-gradient(circle at 50% 45%, rgba(28, 34, 70, 0.45), transparent 45%),
+        linear-gradient(180deg, #05050d 0%, #090817 55%, #03030a 100%);
+    color: #ffffff;
+}
+
+/* =========================================================
+   CONTENEDOR
+   ========================================================= */
+
+#app {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    min-height: 500px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 20% 30%, rgba(0, 180, 255, 0.08), transparent 25%),
+        radial-gradient(circle at 80% 70%, rgba(255, 0, 80, 0.08), transparent 25%);
+}
+
+/* Líneas decorativas tipo arcade */
+
+#app::before,
+#app::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    inset: 0;
+}
+
+#app::before {
+    background:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 100% 4px;
+    opacity: 0.35;
+    z-index: 20;
+}
+
+#app::after {
+    border: 1px solid rgba(0, 220, 255, 0.12);
+    box-shadow:
+        inset 0 0 80px rgba(0, 0, 0, 0.8),
+        inset 0 0 20px rgba(0, 180, 255, 0.05);
+    z-index: 21;
+}
+
+/* =========================================================
+   CANVAS
+   ========================================================= */
+
+#game {
+    position: absolute;
+    width: min(100vw, 900px);
+    height: min(100vh, 560px);
+    max-width: 900px;
+    max-height: 560px;
+    background: #05050d;
+    border: 2px solid rgba(0, 220, 255, 0.45);
+    box-shadow:
+        0 0 12px rgba(0, 220, 255, 0.2),
+        0 0 45px rgba(0, 120, 255, 0.08),
+        inset 0 0 30px rgba(0, 0, 0, 0.7);
+    image-rendering: auto;
+    /* El lienzo interno siempre es 900x560 (o 560x900 en combate).
+       object-fit evita que se deforme cuando la caja en pantalla
+       tiene una proporción distinta (celulares, ventanas angostas, etc). */
+    object-fit: contain;
+    object-position: center;
+    transition: width 0.35s ease, height 0.35s ease;
+}
+
+/* Modo combate: formato vertical tipo teléfono */
+#game.portrait {
+    width: min(62vh, 560px);
+    height: min(100vh, 900px);
+    max-width: 560px;
+    max-height: 900px;
+    border-color: rgba(255, 66, 100, 0.45);
+}
+
+/* =========================================================
+   CLASES GENERALES
+   ========================================================= */
+
+.hidden {
+    display: none !important;
+}
+
+/* =========================================================
+   PANTALLAS
+   ========================================================= */
+
+.screen {
+    position: absolute;
+    z-index: 10;
+
+    width: min(820px, 92vw);
+    max-height: 90vh;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    padding: 36px;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(8, 8, 20, 0.94),
+            rgba(3, 4, 13, 0.91)
+        );
+
+    border: 1px solid rgba(0, 220, 255, 0.3);
+
+    box-shadow:
+        0 0 25px rgba(0, 220, 255, 0.08),
+        0 0 80px rgba(0, 0, 0, 0.7),
+        inset 0 0 35px rgba(0, 220, 255, 0.025);
+
+    backdrop-filter: blur(5px);
+}
+
+/* =========================================================
+   TÍTULOS
+   ========================================================= */
+
+h1 {
+    font-family: Impact, "Arial Black", sans-serif;
+    font-size: clamp(54px, 9vw, 92px);
+    letter-spacing: 12px;
+    line-height: 0.9;
+
+    color: #ffffff;
+
+    text-shadow:
+        3px 0 #ff1744,
+        -3px 0 #00d9ff,
+        0 0 12px rgba(255, 255, 255, 0.45),
+        0 0 35px rgba(0, 210, 255, 0.18);
+
+    margin-left: 12px;
+    margin-bottom: 18px;
+}
+
+h2 {
+    font-family: Impact, "Arial Black", sans-serif;
+    font-size: clamp(30px, 5vw, 52px);
+    letter-spacing: 5px;
+    margin-bottom: 18px;
+
+    text-shadow:
+        0 0 10px rgba(0, 220, 255, 0.5);
+}
+
+.subtitle {
+    color: #00d9ff;
+    font-size: 13px;
+    letter-spacing: 5px;
+    margin-bottom: 28px;
+
+    text-shadow:
+        0 0 8px rgba(0, 217, 255, 0.7);
+}
+
+/* =========================================================
+   SELECTOR DE NAVES
+   ========================================================= */
+
+.ship-picker {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    gap: 22px;
+    margin-bottom: 30px;
+}
+
+.ship-card {
+    position: relative;
+
+    min-height: 260px;
+    padding: 20px 18px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background:
+        linear-gradient(
+            180deg,
+            rgba(20, 24, 43, 0.8),
+            rgba(6, 8, 18, 0.9)
+        );
+
+    color: #ffffff;
+    cursor: pointer;
+
+    transition:
+        transform 0.18s ease,
+        border-color 0.18s ease,
+        box-shadow 0.18s ease,
+        background 0.18s ease;
+}
+
+.ship-card::before {
+    content: "";
+    position: absolute;
+    inset: 6px;
+
+    border: 1px solid transparent;
+    pointer-events: none;
+
+    transition: border-color 0.18s ease;
+}
+
+.ship-card:hover {
+    transform: translateY(-5px);
+
+    border-color: rgba(0, 217, 255, 0.65);
+
+    box-shadow:
+        0 0 15px rgba(0, 217, 255, 0.14),
+        0 0 35px rgba(0, 217, 255, 0.06);
+}
+
+.ship-card:hover::before {
+    border-color: rgba(0, 217, 255, 0.16);
+}
+
+.ship-card.selected {
+    border-color: #00d9ff;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(0, 125, 170, 0.16),
+            rgba(7, 8, 20, 0.92)
+        );
+
+    box-shadow:
+        0 0 12px rgba(0, 217, 255, 0.3),
+        inset 0 0 25px rgba(0, 217, 255, 0.05);
+}
+
+.ship-card.selected::after {
+    content: "SELECCIONADA";
+
+    position: absolute;
+    top: 10px;
+    right: 12px;
+
+    font-size: 9px;
+    letter-spacing: 2px;
+
+    color: #00d9ff;
+
+    text-shadow:
+        0 0 8px rgba(0, 217, 255, 0.8);
+}
+
+/* Imagen de la nave */
+
+.ship-image {
+    width: 180px;
+    height: 150px;
+
+    object-fit: contain;
+
+    image-rendering: auto;
+
+    margin-bottom: 14px;
+
+    filter:
+        drop-shadow(0 0 8px rgba(0, 180, 255, 0.15));
+}
+
+.ship-card:hover .ship-image {
+    transform: scale(1.04);
+    transition: transform 0.18s ease;
+}
+
+.ship-name {
+    font-family: Impact, "Arial Black", sans-serif;
+    font-size: 24px;
+    letter-spacing: 3px;
+
+    margin-bottom: 7px;
+}
+
+.ship-description {
+    color: #9299b7;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* =========================================================
+   BOTONES
+   ========================================================= */
+
+.main-button,
+.secondary-button {
+    font-family: "Courier New", monospace;
+    font-weight: bold;
+    letter-spacing: 2px;
+
+    border: none;
+    cursor: pointer;
+
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        background 0.15s ease;
+}
+
+.main-button {
+    min-width: 220px;
+    padding: 15px 28px;
+
+    color: #02040a;
+
+    background: #00d9ff;
+
+    box-shadow:
+        0 0 12px rgba(0, 217, 255, 0.45),
+        0 0 30px rgba(0, 217, 255, 0.12);
+}
+
+.main-button:hover {
+    transform: translateY(-2px);
+
+    background: #ffffff;
+
+    box-shadow:
+        0 0 15px rgba(255, 255, 255, 0.6),
+        0 0 40px rgba(0, 217, 255, 0.25);
+}
+
+.main-button:active {
+    transform: translateY(1px);
+}
+
+.secondary-button {
+    margin-top: 15px;
+
+    padding: 10px 18px;
+
+    color: #8992ad;
+
+    background: transparent;
+
+    border: 1px solid rgba(137, 146, 173, 0.25);
+}
+
+.secondary-button:hover {
+    color: #ffffff;
+
+    border-color: rgba(0, 217, 255, 0.55);
+
+    box-shadow:
+        0 0 12px rgba(0, 217, 255, 0.1);
+}
+
+/* =========================================================
+   HUD
+   ========================================================= */
+
+#hud {
+    position: absolute;
+    z-index: 12;
+
+    top: max(18px, calc(50% - 260px));
+    left: 50%;
+
+    width: min(860px, 92vw);
+
+    transform: translateX(-50%);
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    pointer-events: none;
+}
+
+.hud-item {
+    padding: 8px 13px;
+
+    color: #a9b4d2;
+
+    font-size: 11px;
+    letter-spacing: 2px;
+
+    background: rgba(3, 5, 14, 0.65);
+
+    border-left: 2px solid rgba(0, 217, 255, 0.6);
+
+    text-shadow:
+        0 0 7px rgba(0, 217, 255, 0.25);
+}
+
+.hud-item span {
+    color: #ffffff;
+    font-weight: bold;
+}
+
+/* =========================================================
+   TUTORIAL
+   ========================================================= */
+
+#tutorial-icon {
+    margin-bottom: 18px;
+
+    font-size: 34px;
+    letter-spacing: 12px;
+
+    color: #00d9ff;
+
+    text-shadow:
+        0 0 10px rgba(0, 217, 255, 0.75);
+}
+
+#tutorial-text {
+    max-width: 560px;
+
+    color: #9da5c0;
+
+    text-align: center;
+    line-height: 1.7;
+
+    font-size: 13px;
+}
+
+#tutorial-progress {
+    width: min(380px, 80vw);
+    height: 4px;
+
+    margin-top: 28px;
+
+    overflow: hidden;
+
+    background: rgba(255, 255, 255, 0.08);
+}
+
+#tutorial-progress-fill {
+    width: 0%;
+    height: 100%;
+
+    background: #00d9ff;
+
+    box-shadow:
+        0 0 10px rgba(0, 217, 255, 0.8);
+
+    transition: width 0.2s linear;
+}
+
+/* =========================================================
+   HISTORIA
+   ========================================================= */
+
+.story-text {
+    max-width: 560px;
+    color: #c3c9e6;
+    text-align: center;
+    line-height: 1.8;
+    font-size: 14px;
+    margin-bottom: 18px;
+}
+
+.story-text strong {
+    color: #00d9ff;
+    text-shadow: 0 0 8px rgba(0, 217, 255, 0.6);
+}
+
+/* =========================================================
+   GAME OVER
+   ========================================================= */
+
+#gameover-screen {
+    border-color: rgba(255, 23, 68, 0.3);
+}
+
+#gameover-screen .subtitle {
+    color: #ff4264;
+
+    text-shadow:
+        0 0 10px rgba(255, 23, 68, 0.65);
+}
+
+#gameover-screen.victory {
+    border-color: rgba(93, 255, 176, 0.35);
+}
+
+#gameover-screen.victory .subtitle {
+    color: #5dffb0;
+    text-shadow: 0 0 12px rgba(93, 255, 176, 0.7);
+}
+
+#gameover-screen.victory #final-score {
+    color: #5dffb0;
+    text-shadow: 0 0 18px rgba(93, 255, 176, 0.5);
+}
+
+#final-score {
+    font-family: Impact, "Arial Black", sans-serif;
+
+    font-size: clamp(54px, 8vw, 82px);
+
+    letter-spacing: 4px;
+
+    margin-bottom: 25px;
+
+    color: #ffffff;
+
+    text-shadow:
+        0 0 15px rgba(255, 255, 255, 0.2);
+}
+
+/* =========================================================
+   BOTÓN FIRE
+   ========================================================= */
+
+#fire-button {
+    position: absolute;
+
+    right: 24px;
+    bottom: 28px;
+
+    z-index: 15;
+
+    width: 76px;
+    height: 76px;
+
+    border-radius: 50%;
+
+    border: 2px solid rgba(255, 80, 100, 0.7);
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(255, 45, 75, 0.9),
+            rgba(90, 5, 20, 0.9)
+        );
+
+    color: #ffffff;
+
+    font-family: "Courier New", monospace;
+    font-weight: bold;
+    font-size: 11px;
+
+    box-shadow:
+        0 0 15px rgba(255, 30, 70, 0.3);
+
+    cursor: pointer;
+
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
+
+#fire-button:active {
+    transform: scale(0.94);
+
+    box-shadow:
+        0 0 25px rgba(255, 30, 70, 0.55);
+}
+
+/* =========================================================
+   BOTONES MISIL / ESCUDO
+   ========================================================= */
+
+#missile-button,
+#shield-button {
+    position: absolute;
+
+    z-index: 15;
+
+    width: 62px;
+    height: 62px;
+
+    border-radius: 50%;
+
+    color: #ffffff;
+
+    font-family: "Courier New", monospace;
+    font-weight: bold;
+    font-size: 9px;
+
+    cursor: pointer;
+
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
+
+#missile-button {
+    right: 108px;
+    bottom: 38px;
+
+    border: 2px solid rgba(255, 180, 60, 0.75);
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(255, 160, 40, 0.9),
+            rgba(110, 55, 5, 0.9)
+        );
+
+    box-shadow:
+        0 0 15px rgba(255, 160, 40, 0.3);
+}
+
+#shield-button {
+    right: 24px;
+    bottom: 122px;
+
+    border: 2px solid rgba(0, 217, 255, 0.75);
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(0, 200, 255, 0.85),
+            rgba(5, 60, 90, 0.9)
+        );
+
+    box-shadow:
+        0 0 15px rgba(0, 217, 255, 0.3);
+}
+
+#missile-button:active,
+#shield-button:active {
+    transform: scale(0.94);
+}
+
+/* =========================================================
+   CONTROLES
+   ========================================================= */
+
+#controls-hint {
+    position: absolute;
+
+    z-index: 12;
+
+    bottom: max(15px, calc(50% - 295px));
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    color: rgba(145, 155, 185, 0.7);
+
+    font-size: 9px;
+    letter-spacing: 1.5px;
+
+    text-align: center;
+
+    pointer-events: none;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+    #game {
+        width: 100vw;
+        height: 100vh;
+        border-left: none;
+        border-right: none;
+    }
+
+    .screen {
+        width: 94vw;
+        padding: 24px 16px;
+    }
+
+    h1 {
+        letter-spacing: 7px;
+    }
+
+    .ship-picker {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        overflow-y: auto;
+        max-height: 52vh;
+        padding: 3px;
+    }
+
+    .ship-card {
+        min-height: 180px;
+        padding: 12px;
+    }
+
+    .ship-image {
+        width: 130px;
+        height: 90px;
+        margin-bottom: 7px;
+    }
+
+    .ship-name {
+        font-size: 19px;
+    }
+
+    .ship-description {
+        font-size: 9px;
+    }
+
+    #hud {
+        top: 12px;
+        width: 94vw;
+    }
+
+    .hud-item {
+        font-size: 9px;
+        padding: 6px 8px;
+    }
+
+    #controls-hint {
+        bottom: 8px;
+        font-size: 8px;
+    }
+
+    #fire-button {
+        right: 15px;
+        bottom: 32px;
+    }
+
+    #missile-button {
+        right: 92px;
+        bottom: 40px;
+        width: 52px;
+        height: 52px;
+    }
+
+    #shield-button {
+        right: 15px;
+        bottom: 100px;
+        width: 52px;
+        height: 52px;
+    }
+}
+
+@media (max-height: 650px) and (min-width: 701px) {
+
+    .screen {
+        padding: 20px;
+    }
+
+    h1 {
+        font-size: 58px;
+        margin-bottom: 10px;
+    }
+
+    .subtitle {
+        margin-bottom: 15px;
+    }
+
+    .ship-card {
+        min-height: 205px;
+    }
+
+    .ship-image {
+        width: 130px;
+        height: 100px;
+    }
+
+    .ship-picker {
+        margin-bottom: 15px;
+    }
+}
+.asset-hidden {
+    display: none;
+}

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="NÓMADA: arcade espacial retro. Esquiva meteoritos, dispara y enfréntate a los jefes en modo combate.">
+    <meta name="theme-color" content="#05050d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <title>NÓMADA</title>
+
+    <!-- Estilos del juego -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Contenedor principal -->
+    <main id="app">
+
+        <!-- Canvas donde se dibujará el juego -->
+        <canvas id="game" width="900" height="560"></canvas>
+
+
+        <!-- =========================
+             HUD: información del juego
+             ========================= -->
+        <section id="hud" class="hidden">
+            <div class="hud-item">
+                DISTANCIA:
+                <span id="score">0</span> m
+            </div>
+
+            <div class="hud-item">
+                RÉCORD:
+                <span id="best">0</span> m
+            </div>
+        </section>
+
+
+        <!-- =========================
+             PANTALLA: selección de nave
+             ========================= -->
+        <section id="select-screen" class="screen">
+
+            <h1>NÓMADA</h1>
+
+            <p class="subtitle">
+                ELIGE TU NAVE
+            </p>
+
+            <div id="ship-picker" class="ship-picker">
+
+                <!-- Nave 1 -->
+                <button class="ship-card selected" data-ship="0">
+
+                    <img
+                        src="imagenes/nave_interceptor.png"
+                        alt="Nave Interceptor"
+                        class="ship-image"
+                    >
+
+                    <span class="ship-name">
+                        INTERCEPTOR
+                    </span>
+
+                    <span class="ship-description">
+                        Equilibrada · disparo doble
+                    </span>
+
+                </button>
+
+
+                <!-- Nave 2 -->
+                <button class="ship-card" data-ship="1">
+
+                    <img
+                        src="imagenes/nave_vanguardia.png"
+                        alt="Nave Vanguardia"
+                        class="ship-image"
+                    >
+
+                    <span class="ship-name">
+                        VANGUARDIA
+                    </span>
+
+                    <span class="ship-description">
+                        Más cañones · disparo rápido
+                    </span>
+
+                </button>
+
+            </div>
+
+            <button id="start-button" class="main-button">
+                CONTINUAR
+            </button>
+
+        </section>
+
+
+        <!-- =========================
+             PANTALLA: historia / misión
+             ========================= -->
+        <section id="story-screen" class="screen hidden">
+
+            <h2>MISIÓN</h2>
+
+            <p class="story-text">
+                Eres el piloto del <strong>INTERCEPTOR</strong>, una nave de
+                la Fuerza Interestelar. Dos naves enemigas robaron tecnología
+                clasificada y escaparon hacia el campo de asteroides.
+            </p>
+
+            <p class="story-text">
+                Tu misión: perseguirlas a través de los obstáculos, sobrevivir
+                al viaje y, cuando las alcances, activar el
+                <strong>MODO COMBATE</strong> para enfrentarlas cara a cara.
+            </p>
+
+            <button id="story-continue-button" class="main-button">
+                COMENZAR MISIÓN
+            </button>
+
+        </section>
+
+
+        <!-- =========================
+             PANTALLA: tutorial
+             ========================= -->
+        <section id="tutorial-screen" class="screen hidden">
+
+            <div id="tutorial-icon">
+                ↑ ↓
+            </div>
+
+            <h2 id="tutorial-title">
+                MUÉVETE
+            </h2>
+
+            <p id="tutorial-text">
+                Usa las flechas ↑ ↓ o las teclas W / S para mover la nave.
+            </p>
+
+            <div id="tutorial-progress">
+                <div id="tutorial-progress-fill"></div>
+            </div>
+
+            <button id="skip-tutorial" class="secondary-button">
+                SALTAR TUTORIAL
+            </button>
+
+        </section>
+
+
+        <!-- =========================
+             PANTALLA: Game Over
+             ========================= -->
+        <section id="gameover-screen" class="screen hidden">
+
+            <p class="subtitle" id="gameover-subtitle">
+                VIAJE INTERRUMPIDO
+            </p>
+
+            <div id="final-score">
+                0 m
+            </div>
+
+            <button id="retry-button" class="main-button">
+                REINTENTAR
+            </button>
+
+            <button id="change-ship-button" class="secondary-button">
+                CAMBIAR NAVE
+            </button>
+
+        </section>
+
+
+        <!-- Botón de disparo para móvil -->
+        <button id="fire-button" class="hidden">
+            FIRE
+        </button>
+
+        <!-- Botón de misil para móvil -->
+        <button id="missile-button" class="hidden">
+            MISIL
+        </button>
+
+        <!-- Botón de escudo para móvil (solo modo combate) -->
+        <button id="shield-button" class="hidden">
+            ESCUDO
+        </button>
+
+
+        <!-- Controles -->
+        <div id="controls-hint" class="hidden">
+
+            ↑ ↓ / W S:
+            MOVER
+
+            ·
+
+            ESPACIO:
+            DISPARAR
+
+            ·
+
+            Q:
+            MISIL
+
+        </div>
+
+
+        <!-- Imágenes de obstáculos (precarga) -->
+        <img
+            src="imagenes/meteoro_1.png"
+            id="meteoro-1"
+            class="asset-hidden"
+            alt=""
+        >
+
+        <img
+            src="imagenes/meteoro_2.png"
+            id="meteoro-2"
+            class="asset-hidden"
+            alt=""
+        >
+
+        <img
+            src="imagenes/enemigo_1.png"
+            id="enemigo-1"
+            class="asset-hidden"
+            alt=""
+        >
+
+        <img
+            src="imagenes/enemigo_2.png"
+            id="enemigo-2"
+            class="asset-hidden"
+            alt=""
+        >
+
+        <img
+            src="imagenes/misil_interceptor.png"
+            id="misil-interceptor"
+            class="asset-hidden"
+            alt=""
+        >
+
+        <img
+            src="imagenes/misil_vanguardia.png"
+            id="misil-vanguardia"
+            class="asset-hidden"
+            alt=""
+        >
+
+    </main>
+
+
+    <!-- JavaScript del juego -->
+    <script src="js/game.js"></script>
+
+</body>
+</html>
