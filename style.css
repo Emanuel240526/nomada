@@ -565,13 +565,13 @@ h2 {
 #fire-button {
     position: absolute;
 
-    right: calc(24px + env(safe-area-inset-right));
-    bottom: calc(28px + env(safe-area-inset-bottom));
+    right: calc(22px + env(safe-area-inset-right));
+    bottom: calc(26px + env(safe-area-inset-bottom));
 
     z-index: 15;
 
-    width: 76px;
-    height: 76px;
+    width: 90px;
+    height: 90px;
 
     border-radius: 50%;
 
@@ -588,7 +588,7 @@ h2 {
 
     font-family: "Courier New", monospace;
     font-weight: bold;
-    font-size: 11px;
+    font-size: 12px;
 
     box-shadow:
         0 0 15px rgba(255, 30, 70, 0.3);
@@ -617,8 +617,8 @@ h2 {
 
     z-index: 15;
 
-    width: 62px;
-    height: 62px;
+    width: 68px;
+    height: 68px;
 
     border-radius: 50%;
 
@@ -626,7 +626,7 @@ h2 {
 
     font-family: "Courier New", monospace;
     font-weight: bold;
-    font-size: 9px;
+    font-size: 10px;
 
     cursor: pointer;
 
@@ -636,8 +636,8 @@ h2 {
 }
 
 #missile-button {
-    right: calc(108px + env(safe-area-inset-right));
-    bottom: calc(38px + env(safe-area-inset-bottom));
+    right: calc(124px + env(safe-area-inset-right));
+    bottom: calc(40px + env(safe-area-inset-bottom));
 
     border: 2px solid rgba(255, 180, 60, 0.75);
 
@@ -653,8 +653,8 @@ h2 {
 }
 
 #shield-button {
-    right: calc(24px + env(safe-area-inset-right));
-    bottom: calc(122px + env(safe-area-inset-bottom));
+    right: calc(22px + env(safe-area-inset-right));
+    bottom: calc(130px + env(safe-area-inset-bottom));
 
     border: 2px solid rgba(0, 217, 255, 0.75);
 
@@ -765,22 +765,24 @@ h2 {
     }
 
     #fire-button {
-        right: calc(15px + env(safe-area-inset-right));
-        bottom: calc(32px + env(safe-area-inset-bottom));
+        right: calc(12px + env(safe-area-inset-right));
+        bottom: calc(28px + env(safe-area-inset-bottom));
+        width: 82px;
+        height: 82px;
     }
 
     #missile-button {
-        right: calc(92px + env(safe-area-inset-right));
-        bottom: calc(40px + env(safe-area-inset-bottom));
-        width: 52px;
-        height: 52px;
+        right: calc(106px + env(safe-area-inset-right));
+        bottom: calc(42px + env(safe-area-inset-bottom));
+        width: 66px;
+        height: 66px;
     }
 
     #shield-button {
-        right: calc(15px + env(safe-area-inset-right));
-        bottom: calc(100px + env(safe-area-inset-bottom));
-        width: 52px;
-        height: 52px;
+        right: calc(12px + env(safe-area-inset-right));
+        bottom: calc(122px + env(safe-area-inset-bottom));
+        width: 66px;
+        height: 66px;
     }
 }
 
