@@ -17,6 +17,52 @@
     let WIDTH = 900;
     let HEIGHT = 560;
 
+
+    /*
+     * Detección real de dispositivo táctil (no solo ancho
+     * de pantalla). Un teléfono en horizontal puede superar
+     * los 700px de ancho y antes se quedaba sin botones.
+     */
+
+    const isTouchDevice =
+        "ontouchstart" in window ||
+        navigator.maxTouchPoints > 0;
+
+
+    /*
+     * Limitamos la resolución interna del canvas al pixel
+     * ratio del dispositivo (con techo en 2x) para que se
+     * vea nítido en pantallas retina/Android de alta densidad
+     * sin gastar de más en teléfonos muy potentes.
+     */
+
+    const MAX_DEVICE_PIXEL_RATIO = 2;
+
+    function applyCanvasResolution() {
+
+        const ratio =
+            Math.min(
+                window.devicePixelRatio || 1,
+                MAX_DEVICE_PIXEL_RATIO
+            );
+
+        canvas.width =
+            WIDTH * ratio;
+
+        canvas.height =
+            HEIGHT * ratio;
+
+        ctx.setTransform(
+            ratio,
+            0,
+            0,
+            ratio,
+            0,
+            0
+        );
+    }
+
+
     function setCanvasOrientation(
         portrait
     ) {
@@ -47,9 +93,7 @@
 
         HEIGHT = newHeight;
 
-        canvas.width = WIDTH;
-
-        canvas.height = HEIGHT;
+        applyCanvasResolution();
 
 
         createStars();
@@ -128,6 +172,9 @@
     const controlsHint =
         document.getElementById("controls-hint");
 
+    const tutorialIcon =
+        document.getElementById("tutorial-icon");
+
     const tutorialTitle =
         document.getElementById("tutorial-title");
 
@@ -141,6 +188,32 @@
 
     const shipCards =
         document.querySelectorAll(".ship-card");
+
+
+    /* =====================================================
+       TEXTO DE CONTROLES SEGÚN DISPOSITIVO
+       (táctil: deslizar + botones · escritorio: teclado)
+       ===================================================== */
+
+    function setControlsHintText(
+        combat
+    ) {
+
+        if (isTouchDevice) {
+
+            controlsHint.innerHTML =
+                combat
+                    ? "DESLIZA: MOVER · BOTONES: DISPARAR / ESCUDO / MISIL"
+                    : "DESLIZA: MOVER · BOTONES: DISPARAR / MISIL";
+
+        } else {
+
+            controlsHint.innerHTML =
+                combat
+                    ? "↑↓←→ / WASD: MOVER · ESPACIO: DISPARAR · MAYÚS: ESCUDO · Q: MISIL"
+                    : "↑ ↓ / W S: MOVER · ESPACIO: DISPARAR · Q: MISIL";
+        }
+    }
 
 
     /* =====================================================
@@ -342,7 +415,8 @@
         left: false,
         right: false,
         shield: false,
-        fire: false
+        fire: false,
+        missile: false
     };
 
 
@@ -670,6 +744,47 @@
 
 
     /* =====================================================
+       CALIDAD ADAPTATIVA
+       Si el dispositivo no logra sostener un buen framerate
+       (celulares de gama baja) se bajan automáticamente los
+       brillos (shadowBlur, el efecto más caro en Canvas2D) y
+       la cantidad de partículas. En equipos que sí aguantan,
+       esto nunca se activa y el juego se ve exactamente igual.
+       ===================================================== */
+
+    let lowPowerMode = false;
+    let slowFrameAccum = 0;
+
+    function trackPerformance(rawDt) {
+
+        if (lowPowerMode) {
+            return;
+        }
+
+        /* Menos de ~30 fps sostenido por 3 segundos */
+
+        if (rawDt > 1 / 30) {
+
+            slowFrameAccum += rawDt;
+
+            if (slowFrameAccum > 3) {
+
+                lowPowerMode = true;
+            }
+
+        } else {
+
+            slowFrameAccum = 0;
+        }
+    }
+
+    function glowBlur(px) {
+
+        return lowPowerMode ? 0 : px;
+    }
+
+
+    /* =====================================================
        UTILIDADES
        ===================================================== */
 
@@ -820,9 +935,27 @@
        FONDO
        ===================================================== */
 
-    function drawBackground() {
+    /*
+     * Los 3 degradados del fondo son costosos de crear y antes
+     * se generaban de nuevo en CADA frame aunque no cambiaran:
+     * eso es trabajo de más, sobre todo en celulares. Ahora se
+     * guardan en caché y solo se recalculan si cambia el tamaño
+     * del canvas (por ejemplo al entrar en modo combate vertical).
+     * De paso, las nebulosas pasan a posicionarse en proporción
+     * a WIDTH/HEIGHT en vez de coordenadas fijas pensadas solo
+     * para el formato horizontal, así también se ven bien en
+     * modo retrato.
+     */
 
-        const gradient =
+    let backgroundCacheW = 0;
+    let backgroundCacheH = 0;
+    let backgroundGradient = null;
+    let backgroundBlueGlow = null;
+    let backgroundRedGlow = null;
+
+    function buildBackgroundGradients() {
+
+        backgroundGradient =
             ctx.createLinearGradient(
                 0,
                 0,
@@ -830,56 +963,93 @@
                 HEIGHT
             );
 
-        gradient.addColorStop(
+        backgroundGradient.addColorStop(
             0,
             "#03030b"
         );
 
-        gradient.addColorStop(
+        backgroundGradient.addColorStop(
             0.5,
             "#080b1e"
         );
 
-        gradient.addColorStop(
+        backgroundGradient.addColorStop(
             1,
             "#03030b"
-        );
-
-        ctx.fillStyle =
-            gradient;
-
-        ctx.fillRect(
-            0,
-            0,
-            WIDTH,
-            HEIGHT
         );
 
 
         /* Nebulosa azul */
 
-        const blueGlow =
+        const blueRadius =
+            Math.max(WIDTH, HEIGHT) * 0.32;
+
+        backgroundBlueGlow =
             ctx.createRadialGradient(
-                700,
-                100,
+                WIDTH * 0.78,
+                HEIGHT * 0.18,
                 0,
-                700,
-                100,
-                280
+                WIDTH * 0.78,
+                HEIGHT * 0.18,
+                blueRadius
             );
 
-        blueGlow.addColorStop(
+        backgroundBlueGlow.addColorStop(
             0,
             "rgba(0,160,255,0.12)"
         );
 
-        blueGlow.addColorStop(
+        backgroundBlueGlow.addColorStop(
             1,
             "rgba(0,0,0,0)"
         );
 
+
+        /* Nebulosa roja */
+
+        const redRadius =
+            Math.max(WIDTH, HEIGHT) * 0.29;
+
+        backgroundRedGlow =
+            ctx.createRadialGradient(
+                WIDTH * 0.28,
+                HEIGHT * 0.84,
+                0,
+                WIDTH * 0.28,
+                HEIGHT * 0.84,
+                redRadius
+            );
+
+        backgroundRedGlow.addColorStop(
+            0,
+            "rgba(255,0,70,0.08)"
+        );
+
+        backgroundRedGlow.addColorStop(
+            1,
+            "rgba(0,0,0,0)"
+        );
+
+
+        backgroundCacheW = WIDTH;
+        backgroundCacheH = HEIGHT;
+    }
+
+
+    function drawBackground() {
+
+        if (
+            backgroundCacheW !== WIDTH ||
+            backgroundCacheH !== HEIGHT ||
+            !backgroundGradient
+        ) {
+
+            buildBackgroundGradients();
+        }
+
+
         ctx.fillStyle =
-            blueGlow;
+            backgroundGradient;
 
         ctx.fillRect(
             0,
@@ -889,30 +1059,19 @@
         );
 
 
-        /* Nebulosa roja */
+        ctx.fillStyle =
+            backgroundBlueGlow;
 
-        const redGlow =
-            ctx.createRadialGradient(
-                250,
-                470,
-                0,
-                250,
-                470,
-                260
-            );
-
-        redGlow.addColorStop(
+        ctx.fillRect(
             0,
-            "rgba(255,0,70,0.08)"
+            0,
+            WIDTH,
+            HEIGHT
         );
 
-        redGlow.addColorStop(
-            1,
-            "rgba(0,0,0,0)"
-        );
 
         ctx.fillStyle =
-            redGlow;
+            backgroundRedGlow;
 
         ctx.fillRect(
             0,
@@ -937,9 +1096,14 @@
         color = "#00d9ff"
     ) {
 
+        const finalAmount =
+            lowPowerMode
+                ? Math.ceil(amount * 0.4)
+                : amount;
+
         for (
             let i = 0;
-            i < amount;
+            i < finalAmount;
             i++
         ) {
 
@@ -1310,7 +1474,7 @@
 
         if (
             Math.random() <
-            0.7
+            (lowPowerMode ? 0.3 : 0.7)
         ) {
 
             createThrustParticle();
@@ -1464,8 +1628,9 @@
         }
 
 
-        ctx.shadowBlur =
-            15;
+        ctx.shadowBlur = glowBlur(
+                15
+            );
 
         ctx.shadowColor =
             selectedShip === 0
@@ -1844,7 +2009,9 @@
             Math.PI / 2
         );
 
-        ctx.shadowBlur = 18;
+        ctx.shadowBlur = glowBlur(
+                18
+            );
 
         ctx.shadowColor =
             bullet.glow;
@@ -1907,11 +2074,12 @@
                 bullet.angle || 0
             );
 
-            ctx.shadowBlur =
+            ctx.shadowBlur = glowBlur(
                 bullet.kind ===
                 "missile"
                     ? 16
-                    : 10;
+                    : 10
+            );
 
             ctx.shadowColor =
                 bullet.glow;
@@ -2200,8 +2368,9 @@
         }
 
 
-        ctx.shadowBlur =
-            14;
+        ctx.shadowBlur = glowBlur(
+                14
+            );
 
         ctx.shadowColor =
             enemy.color;
@@ -2339,8 +2508,9 @@
                 0.5;
         }
 
-        ctx.shadowBlur =
-            12;
+        ctx.shadowBlur = glowBlur(
+                12
+            );
 
         ctx.shadowColor =
             enemy.color;
@@ -2668,7 +2838,9 @@
          * una nave.
          */
 
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = glowBlur(
+                8
+            );
 
         ctx.shadowColor =
             meteor.variant === 0
@@ -2876,10 +3048,7 @@
         );
 
 
-        if (
-            window.innerWidth <=
-            700
-        ) {
+        if (isTouchDevice) {
 
             shieldButton.classList.remove(
                 "hidden"
@@ -2906,8 +3075,7 @@
         );
 
 
-        controlsHint.innerHTML =
-            "↑↓←→ / WASD: MOVER · ESPACIO: DISPARAR · MAYÚS: ESCUDO · Q: MISIL";
+        setControlsHintText(true);
     }
 
 
@@ -3512,8 +3680,7 @@
                 "#5dffb0"
             );
 
-            controlsHint.innerHTML =
-                "↑ ↓ / W S: MOVER · ESPACIO: DISPARAR · Q: MISIL";
+            setControlsHintText(false);
 
             enemyTimer = -1.5;
 
@@ -3566,7 +3733,9 @@
                 0.55;
         }
 
-        ctx.shadowBlur = 22;
+        ctx.shadowBlur = glowBlur(
+                22
+            );
 
         ctx.shadowColor =
             boss.color;
@@ -3675,8 +3844,9 @@
 
                 ctx.save();
 
-                ctx.shadowBlur =
-                    10;
+                ctx.shadowBlur = glowBlur(
+                10
+            );
 
                 ctx.shadowColor =
                     b.color;
@@ -3730,7 +3900,9 @@
 
         ctx.lineWidth = 3;
 
-        ctx.shadowBlur = 18;
+        ctx.shadowBlur = glowBlur(
+                18
+            );
 
         ctx.shadowColor =
             "#00d9ff";
@@ -3873,8 +4045,9 @@
             );
 
 
-            ctx.shadowBlur =
-                15;
+            ctx.shadowBlur = glowBlur(
+                15
+            );
 
             ctx.shadowColor =
                 data.color;
@@ -4713,7 +4886,9 @@
             ctx.shadowColor =
                 combatBannerColor;
 
-            ctx.shadowBlur = 20;
+            ctx.shadowBlur = glowBlur(
+                20
+            );
 
             ctx.fillText(
                 combatBannerText,
@@ -4929,15 +5104,14 @@
             "hidden"
         );
 
+        setControlsHintText(false);
+
         controlsHint.classList.remove(
             "hidden"
         );
 
 
-        if (
-            window.innerWidth <=
-            700
-        ) {
+        if (isTouchDevice) {
 
             fireButton.classList.remove(
                 "hidden"
@@ -5121,8 +5295,16 @@
                 "MUÉVETE";
 
 
+            tutorialIcon.textContent =
+                isTouchDevice
+                    ? "👆"
+                    : "↑ ↓";
+
+
             tutorialText.textContent =
-                "Usa las flechas ↑ ↓ o las teclas W / S para mover la nave.";
+                isTouchDevice
+                    ? "Desliza el dedo por la pantalla para mover la nave."
+                    : "Usa las flechas ↑ ↓ o las teclas W / S para mover la nave.";
 
 
             tutorialProgress.style.width =
@@ -5139,8 +5321,16 @@
                 "DISPARA";
 
 
+            tutorialIcon.textContent =
+                isTouchDevice
+                    ? "🔴"
+                    : "⎵";
+
+
             tutorialText.textContent =
-                "Mantén presionada ESPACIO para destruir enemigos y meteoritos.";
+                isTouchDevice
+                    ? "Mantén presionado el botón rojo para destruir enemigos y meteoritos."
+                    : "Mantén presionada ESPACIO para destruir enemigos y meteoritos.";
 
 
             tutorialProgress.style.width =
@@ -5155,6 +5345,10 @@
 
             tutorialTitle.textContent =
                 "SOBREVIVE";
+
+
+            tutorialIcon.textContent =
+                "★";
 
 
             tutorialText.textContent =
@@ -5746,6 +5940,13 @@
 
     let touchStartY = null;
 
+    /*
+     * Antes solo se seguía el eje Y. En modo combate la nave
+     * también se mueve en horizontal (izquierda/derecha) y
+     * por táctil era imposible esquivar de lado a lado.
+     */
+    let touchStartX = null;
+
 
     canvas.addEventListener(
         "touchstart",
@@ -5770,6 +5971,10 @@
             touchStartY =
                 event.touches[0]
                     .clientY;
+
+            touchStartX =
+                event.touches[0]
+                    .clientX;
 
         },
         {
@@ -5801,6 +6006,10 @@
             const currentY =
                 event.touches[0]
                     .clientY;
+
+            const currentX =
+                event.touches[0]
+                    .clientX;
 
 
             const difference =
@@ -5846,6 +6055,55 @@
                     currentY;
             }
 
+
+            if (
+                combatMode &&
+                touchStartX !== null
+            ) {
+
+                const differenceX =
+                    currentX -
+                    touchStartX;
+
+                if (
+                    Math.abs(
+                        differenceX
+                    ) > 8
+                ) {
+
+                    if (
+                        differenceX < 0
+                    ) {
+
+                        player.x -=
+                            player.speed *
+                            0.025;
+
+                    } else {
+
+                        player.x +=
+                            player.speed *
+                            0.025;
+                    }
+
+
+                    player.x =
+                        clamp(
+
+                            player.x,
+
+                            50,
+
+                            WIDTH - 50
+
+                        );
+
+
+                    touchStartX =
+                        currentX;
+                }
+            }
+
         },
         {
             passive: true
@@ -5860,6 +6118,9 @@
             touchStartY =
                 null;
 
+            touchStartX =
+                null;
+
         },
         {
             passive: true
@@ -5869,53 +6130,112 @@
 
     /* =====================================================
        RESPONSIVE
+       (se reutiliza para "resize" y "orientationchange":
+       algunos navegadores móviles no disparan resize de
+       forma confiable al rotar la pantalla)
        ===================================================== */
 
-    window.addEventListener(
-        "resize",
-        () => {
+    function handleViewportChange() {
 
-            if (
-                gameState ===
-                STATE.PLAYING
-            ) {
+        /*
+         * Vuelve a aplicar la resolución del canvas por si
+         * el navegador cambió de pantalla (raro, pero barato
+         * de repetir).
+         */
 
-                if (
-                    window.innerWidth <=
-                    700
-                ) {
+        applyCanvasResolution();
 
-                    fireButton.classList.remove(
+
+        if (
+            gameState ===
+            STATE.PLAYING
+        ) {
+
+            if (isTouchDevice) {
+
+                fireButton.classList.remove(
+                    "hidden"
+                );
+
+                missileButton.classList.remove(
+                    "hidden"
+                );
+
+                if (combatMode) {
+
+                    shieldButton.classList.remove(
                         "hidden"
                     );
-
-                    missileButton.classList.remove(
-                        "hidden"
-                    );
-
-                    if (
-                        combatMode
-                    ) {
-
-                        shieldButton.classList.remove(
-                            "hidden"
-                        );
-                    }
 
                 } else {
-
-                    fireButton.classList.add(
-                        "hidden"
-                    );
-
-                    missileButton.classList.add(
-                        "hidden"
-                    );
 
                     shieldButton.classList.add(
                         "hidden"
                     );
                 }
+
+            } else {
+
+                fireButton.classList.add(
+                    "hidden"
+                );
+
+                missileButton.classList.add(
+                    "hidden"
+                );
+
+                shieldButton.classList.add(
+                    "hidden"
+                );
+            }
+        }
+    }
+
+
+    window.addEventListener(
+        "resize",
+        handleViewportChange
+    );
+
+
+    window.addEventListener(
+        "orientationchange",
+        handleViewportChange
+    );
+
+
+    /* =====================================================
+       PAUSA AUTOMÁTICA AL CAMBIAR DE APP / PESTAÑA
+       (evita golpes "injustos" mientras el juego está en
+       segundo plano en el celular, y ahorra batería)
+       ===================================================== */
+
+    document.addEventListener(
+        "visibilitychange",
+        () => {
+
+            if (
+                gameState !==
+                STATE.PLAYING
+            ) {
+
+                return;
+            }
+
+            if (document.hidden) {
+
+                paused = true;
+
+            } else {
+
+                paused = false;
+
+                /*
+                 * Evita un salto grande de dt en el primer
+                 * frame al volver.
+                 */
+
+                lastTime = 0;
             }
         }
     );
@@ -6081,7 +6401,8 @@
                             if (
                                 gameState ===
                                     STATE.PLAYING &&
-                                !combatMode
+                                !combatMode &&
+                                !paused
                             ) {
 
                                 spawnMeteor();
@@ -6261,6 +6582,9 @@
             );
 
 
+        trackPerformance(dt);
+
+
         update(dt);
 
         render();
@@ -6275,6 +6599,8 @@
     /* =====================================================
        INICIALIZACIÓN
        ===================================================== */
+
+    applyCanvasResolution();
 
     createStars();
 
