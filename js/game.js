@@ -772,7 +772,24 @@
        brillos (shadowBlur, el efecto más caro en Canvas2D) y
        la cantidad de partículas. En equipos que sí aguantan,
        esto nunca se activa y el juego se ve exactamente igual.
+
+       En táctil el umbral es más estricto y la ventana de
+       detección más corta: shadowBlur casi no tiene aceleración
+       por GPU en navegadores móviles, así que un celular medio
+       lo nota mucho más rápido que un PC. Antes tardaba 3s en
+       reaccionar (se sentía lento desde el primer segundo); ahora
+       en celular baja la calidad en ~1.2s si hace falta.
        ===================================================== */
+
+    const LOW_POWER_FPS_THRESHOLD =
+        isTouchDevice
+            ? 1 / 40
+            : 1 / 30;
+
+    const LOW_POWER_TRIGGER_SECONDS =
+        isTouchDevice
+            ? 1.2
+            : 3;
 
     let lowPowerMode = false;
     let slowFrameAccum = 0;
@@ -783,13 +800,14 @@
             return;
         }
 
-        /* Menos de ~30 fps sostenido por 3 segundos */
-
-        if (rawDt > 1 / 30) {
+        if (rawDt > LOW_POWER_FPS_THRESHOLD) {
 
             slowFrameAccum += rawDt;
 
-            if (slowFrameAccum > 3) {
+            if (
+                slowFrameAccum >
+                LOW_POWER_TRIGGER_SECONDS
+            ) {
 
                 lowPowerMode = true;
             }
@@ -863,9 +881,14 @@
 
         stars = [];
 
+        const starCount =
+            isTouchDevice
+                ? 90
+                : 140;
+
         for (
             let i = 0;
-            i < 140;
+            i < starCount;
             i++
         ) {
 
