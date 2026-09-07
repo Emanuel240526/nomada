@@ -30,6 +30,28 @@
 
 
     /*
+     * En móvil, 100vh no siempre coincide con el alto visible
+     * real (la barra de direcciones del navegador aparece y
+     * desaparece). Si el contenedor #app queda más alto que la
+     * pantalla visible, los botones de FIRE/MISIL/ESCUDO
+     * (anclados al borde inferior) pueden terminar fuera de la
+     * zona visible aunque el canvas se vea bien. Guardamos el
+     * alto real en una variable CSS que style.css usa como
+     * respaldo antes de dvh.
+     */
+
+    function setAppViewportHeight() {
+
+        document.documentElement.style.setProperty(
+            "--app-vh",
+            (window.innerHeight * 0.01) + "px"
+        );
+    }
+
+    setAppViewportHeight();
+
+
+    /*
      * Limitamos la resolución interna del canvas al pixel
      * ratio del dispositivo (con techo en 2x) para que se
      * vea nítido en pantallas retina/Android de alta densidad
@@ -6137,6 +6159,9 @@
 
     function handleViewportChange() {
 
+        setAppViewportHeight();
+
+
         /*
          * Vuelve a aplicar la resolución del canvas por si
          * el navegador cambió de pantalla (raro, pero barato
@@ -6202,6 +6227,21 @@
         "orientationchange",
         handleViewportChange
     );
+
+
+    /*
+     * En iOS Safari, mostrar/ocultar la barra de direcciones
+     * dispara el evento de visualViewport de forma más fiable
+     * que "resize". Si existe, lo aprovechamos también.
+     */
+
+    if (window.visualViewport) {
+
+        window.visualViewport.addEventListener(
+            "resize",
+            handleViewportChange
+        );
+    }
 
 
     /* =====================================================
